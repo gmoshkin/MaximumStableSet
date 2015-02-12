@@ -12,22 +12,17 @@
 ; на каждой итерации алгоритма
 ;###############################################################################
 (define (draw-statistics statistics)
-  (let
+  (let*
     ((iterations-num (length (car statistics)))
      (iterations (range iterations-num))
-     (max-fit (map list (car statistics) iterations))
-     (avg-fit (map list (cadr statistics) iterations))
-     (min-fit (map list (caddr statistics) iterations)))
+     (max-fit (map list iterations (car statistics)))
+     (avg-fit (map list iterations (cadr statistics)))
+     (min-fit (map list iterations (caddr statistics))))
     (plot (list (lines max-fit #:color 1 #:label "Maximum fitness")
                 (lines avg-fit #:color 2 #:label "Average fitness")
                 (lines min-fit #:color 3 #:label "Minimum fitness"))
           #:title "Statistics"
+          #:x-label "Algorith iteration"
+          #:y-label "Fitness"
           #:out-file "Statistics.jpeg"
           #:out-kind 'jpeg)))
-
-(define (foo n i mx av mn)
-  (if (= i n)
-    (list mx av mn)
-    (let
-      ((x (* i 0.1)))
-      (foo n (+ i 1) (cons (exp 'jopa 'jopa 'jopa))))))
