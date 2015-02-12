@@ -24,3 +24,10 @@
           #:title "Statistics"
           #:out-file "Statistics.jpeg"
           #:out-kind 'jpeg)))
+
+(define (foo n i mx av mn)
+  (if (= i n)
+    (list mx av mn)
+    (let
+      ((x (* i 0.1)))
+      (foo n (+ i 1) (cons (exp 'jopa 'jopa 'jopa))))))
