@@ -11,8 +11,20 @@
 (define c-spring 2.0)
 (define c-repulsion 1.0)
 (define nat-length 1.0)
-(define delta 0.1)
+(define delta 0.01)
 (define iterations-num 100)
+(define vertice-color "black")
+(define vertice-radius 4)
+(define vertice-form 'circle)
+(define mss-color "white")
+(define edge-color "white")
+(define edge-kind 'dot)
+(define edge-thickness 2)
+(define background-color "grey")
+(define image-width 700)
+(define image-height 700)
+(define margin-x 50)
+(define margin-y 50)
 
 ;###############################################################################
 ; statistics -- список из трёх списков (max-fit avg-fit min-fit) содержащих
@@ -45,10 +57,7 @@
 ;###############################################################################
 (define (draw-result graph vertices mss)
   (let*
-    ((image-width 400)
-     (image-height 400)
-     (margin-x 10)
-     (margin-y 10)
+    (
      (vertices-vect (apply vector vertices))
      (coordinates (Peter-Eades-algorithm graph vertices))
      (dbg (displayln coordinates))
@@ -86,35 +95,52 @@
 (define (draw-graph dc graph coordinates mss origin-x origin-y scale-x scale-y r)
   (let
     ((coordinates-vect (apply vector coordinates)))
-    (send dc set-background "white")
+    (send dc set-background background-color)
     (send dc clear)
     (send dc set-smoothing 'smoothed)
-    (send dc set-pen "black" 1 'solid)
+    (send dc set-pen edge-color edge-thickness 'solid)
     (map (lambda (edge)
            (let*
              ((v1-coord (vector-ref coordinates-vect (car edge)))
-              (x1 (- (* scale-x (car v1-coord)) origin-x))
-              (y1 (- (* scale-y (cdr v1-coord)) origin-y))
+              (x1 (+ (* scale-x (car v1-coord)) origin-x))
+              (y1 (+ (* scale-y (cdr v1-coord)) origin-y))
               (v2-coord (vector-ref coordinates-vect (cdr edge)))
-              (x2 (- (* scale-x (car v2-coord)) origin-x))
-              (y2 (- (* scale-y (cdr v2-coord)) origin-y)))
+              (x2 (+ (* scale-x (car v2-coord)) origin-x))
+              (y2 (+ (* scale-y (cdr v2-coord)) origin-y)))
              (send dc draw-lines (list (cons x1 y1) (cons x2 y2))))) graph)
-    (send dc set-brush "blue" 'solid)
+    (send dc set-pen "black" 1 'solid)
+    (send dc set-brush vertice-color 'solid)
     (map (lambda (coord)
            (let
-             ((x (- (* scale-x (car coord)) origin-x))
-              (y (- (* scale-y (cdr coord)) origin-y)))
-             (send dc draw-ellipse
-                  (- x r) (- y r) (* r 2) (* r 2)))) coordinates)
+             ((x (+ (* scale-x (car coord)) origin-x))
+              (y (+ (* scale-y (cdr coord)) origin-y)))
+             (draw-vertice dc x y vertice-radius))) coordinates)
     (send dc set-pen "black" 1 'transparent)
-    (send dc set-brush "red" 'solid)
+    (send dc set-brush mss-color 'solid)
     (map (lambda (vertice)
            (let*
              ((coord (vector-ref coordinates-vect vertice))
-              (x (- (* scale-x (car coord)) origin-x))
-              (y (- (* scale-y (cdr coord)) origin-y)))
-             (send dc draw-ellipse
-                   (- x r) (- y r) (* r 2) (* r 2)))) mss)))
+              (x (+ (* scale-x (car coord)) origin-x))
+              (y (+ (* scale-y (cdr coord)) origin-y)))
+             (draw-vertice dc x y vertice-radius))) mss)))
+
+(define (draw-vertice dc x y r)
+  (let
+    ((2pi/3 (/ (* 2 pi) 3)))
+    (cond ((eq? vertice-form 'square)
+          (send dc draw-rectangle (- x r) (- y r) (* 2 r) (* 2 r)))
+         ((eq? vertice-form 'traingle)
+          (send dc draw-lines (list (cons (+ x (* (* 2 r) (cos 2pi/3)))
+                                          (+ y (* (* 2 r) (sin 2pi/3))))
+                                    (cons (+ x (* (* 2 r) (cos (* 2 2pi/3))))
+                                          (+ y (* (* 2 r) (sin (* 2 2pi/3)))))
+                                    (cons (+ x (* (* 2 r) (cos (* 2 pi))))
+                                          (+ y (* (* 2 r) (sin (* 2 pi)))))
+                                    (cons (+ x (* (* 2 r) (cos 2pi/3)))
+                                          (+ y (* (* 2 r) (sin 2pi/3)))))))
+         ((eq? vertice-form 'circle)
+          (send dc draw-ellipse
+                (- x r) (- y r) (* r 2) (* r 2))))))
 
 ;###############################################################################
 ; graph -- список рёбер графа, где ребро -- пара (список?) индексов вершин
@@ -151,7 +177,7 @@
              (y2 (cdr coord2)) (y1 (cdr coord))
              (x-dir (- x1 x2)) (y-dir (- y1 y2))
              (dist (sqrt (+ (sqr x-dir) (sqr y-dir)))))
-        (if (adjecent? v vertice graph)
+        (if (adjacent? v vertice graph)
           (let ((force (* c-spring (log (/ dist nat-length)))))
             (cons (- (* (/ x-dir dist) force)) (- (* (/ y-dir dist) force))))
           (let ((force (/ c-repulsion (sqr dist))))
@@ -165,14 +191,14 @@
 ;###############################################################################
 ; проверяет, есть ли в графе ребро соединяющее две вершины
 ;###############################################################################
-(define (adjecent? v1 v2 graph)
+(define (adjacent? v1 v2 graph)
   (cond
     ((null? graph)
      #f)
     ((or (equal? (cons v1 v2) (car graph)) (equal? (cons v2 v1) (car graph)))
      #t)
     (else
-      (adjecent? v1 v2 (cdr graph)))))
+      (adjacent? v1 v2 (cdr graph)))))
 
 ;###############################################################################
 ; vertices-num -- количество вершин графа
@@ -192,14 +218,17 @@
 ; (define dc (new bitmap-dc% [bitmap bitmap]))
 ; (send dc set-background "white")
 ; (send dc clear)
+; (send dc draw-rectangle (+ (* )10) 10 10 10)
+; (send dc set-transformation (vector (send dc get-initial-matrix) 0 0 1 1 0))
+; (send dc draw-rectangle 10 10 10 10)
+; (send bitmap save-file "Test.png" 'png)
 (define graph (list
                 (cons 1 2) (cons 2 3) (cons 3 0)
                 (cons 6 2) (cons 4 6) (cons 5 7)
                 (cons 3 2) (cons 8 9) (cons 8 6)))
 (define vertices '(0 1 2 3 4 5 6 7 8 9))
-; (define coords (initialize 10))
-; (define v-coords (apply vector coords))
+(define coords (initialize 10))
+(define v-coords (apply vector coords))
 (define mss (list 1 2))
 (draw-result graph vertices mss)
-; (send bitmap save-file "Test.png" 'png)
 
