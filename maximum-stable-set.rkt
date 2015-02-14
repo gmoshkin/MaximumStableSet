@@ -7,6 +7,114 @@
 
 (require racket/math)
 
+; call example: (main '((a b) (b c) (c d) (a d)) 2)
+
+(define (main graph K)
+
+  ; consts
+  (define POP-SIZE 4) ; population size
+
+  ; return list of nodes
+  ; TODO: make our own implementation of used racket/list functions 
+  (define (get-nodes graph)
+    (remove-duplicates (flatten graph)))
+
+  ; useful data
+  (define nodes (get-nodes graph))
+  (define nodes-number (length nodes))
+
+  ; generates POP-SIZE random population, each vector of nodes-number size
+  (define (random-population)
+    ; generate binary vector of nodes-number length
+    (define (gen-bin-vector lst)
+      (if (= (length lst) nodes-number )
+        lst
+        (gen-bin-vector (cons (= 1 (random 2)) lst))))
+
+    (define (gen-population lst)
+      (if (= (length lst) POP-SIZE )
+        lst
+        (gen-population (cons (gen-bin-vector '()) lst))))
+
+    (gen-population '()))
+
+  ; calculate fitness function of solution
+  (define (ff solution)
+    (let*
+      ((coverage-vec (get-coverage-vec solution))
+       (coverage (sum coverage-vec))
+       (vertexes-taken (sum (binary-vec-to-int solution))))
+      (+
+        (/ coverage nodes-number)
+        (/ (+ 1 (* nodes-number vertexes-taken))))))
+
+  ; returns the list of coverages (0 or 1) for each vertex in the solution 
+  (define (get-coverage-vec solution)
+    (define solution-with-names (zip solution nodes))
+    (define taken-vertexes (solution-to-vertex-names solution))
+
+    ; check coverage (0 or 1) for a not-taken vertex
+    (define (check-coverage vertex)
+      ; check for existence (0 or 1) an edge between two vertices in graph
+      (define (exist-edge-between v1 v2)
+        ; check (#t or #f) that given edge connects two given vertices
+        (define (this-edge-connects-these-vertices edge v1 v2)
+          (or
+            (and (eqv? v1 (car edge)) (eqv? v2 (cadr edge)))
+            (and (eqv? v1 (cadr edge)) (eqv? v2 (car edge)))))
+
+        (sgn (sum (map
+          (lambda (edge)
+            (if (this-edge-connects-these-vertices edge v1 v2)
+              1
+              0))
+          graph))))
+
+      (sgn (sum (map
+        (lambda (taken-vertex)
+          (if (= 1 (exist-edge-between vertex taken-vertex))
+            1
+            0))
+        taken-vertexes))))
+
+    (map
+      (lambda (x)
+        (if (car x)
+          1
+          (check-coverage (cdr x))))
+      solution-with-names))
+
+  ; convert genetic solution to vertex names
+  (define (solution-to-vertex-names solution)
+    (define solution-with-names (zip solution nodes))
+    (map
+      (lambda (x) (cdr x))  
+      (filter
+        (lambda (x) (car x))
+        solution-with-names)))
+
+   ; compare two (solution . solution's fitness) pairs
+  (define (sol-f> sf1 sf2)
+    (> (cdr sf1) (cdr sf2)))
+
+  ; one cycle - one population
+  (define (main-cycle population-with-ffs generation-numb)
+    (let*
+      ((n 2))
+      population-with-ffs))
+  
+  ; initialize population, calculate their fitness functions, sort them, and go to the main cycle
+  (main-cycle
+    (sort
+      (map (lambda (x) (cons x (ff x))) (random-population))
+      ; (map (lambda (x) (cons x (ff x))) '((#t #f #f #f)))
+      sol-f>)
+    0))
+
+
+;#######################################################
+; Визуализация
+;#######################################################
 ; константы:
 (define c-spring 2.0)
 (define c-repulsion 1.0)
@@ -192,6 +300,28 @@
 ; (define dc (new bitmap-dc% [bitmap bitmap]))
 ; (send dc set-background "white")
 ; (send dc clear)
+
+;###############################################################################
+; Просто полезные функции
+;###############################################################################
+
+; sum of a list
+(define (sum lst) (foldl + 0 lst))
+
+; convert binary list to a list of integers
+(define (binary-vec-to-int bin-lst)
+    (map
+      (lambda (x)
+        (if x
+          1
+          0))
+      bin-lst))
+
+(define (zip lst1 lst2) 
+  (map cons lst1 lst2))
+
+;###############################################################################
+
 (define graph (list
                 (cons 1 2) (cons 2 3) (cons 3 0)
                 (cons 6 2) (cons 4 6) (cons 5 7)
@@ -200,6 +330,7 @@
 ; (define coords (initialize 10))
 ; (define v-coords (apply vector coords))
 (define mss (list 1 2))
-(draw-result graph vertices mss)
+; (draw-result graph vertices mss)
 ; (send bitmap save-file "Test.png" 'png)
 
+(main '((a b) (b c) (c d) (a d) (a e)) 2)
