@@ -13,14 +13,14 @@
 (define nat-length 1.0)
 (define delta 0.01)
 (define iterations-num 100)
-(define vertice-color "black")
-(define vertice-radius 4)
+(define vertice-color "blue")
+(define vertice-radius 6)
 (define vertice-form 'circle)
-(define mss-color "white")
-(define edge-color "white")
+(define mss-color "red")
+(define edge-color "black")
 (define edge-kind 'dot)
 (define edge-thickness 2)
-(define background-color "grey")
+(define background-color "white")
 (define image-width 700)
 (define image-height 700)
 (define margin-x 50)
@@ -124,6 +124,12 @@
               (y (+ (* scale-y (cdr coord)) origin-y)))
              (draw-vertice dc x y vertice-radius))) mss)))
 
+;###############################################################################
+; dc -- объект типа контекст рисования
+; x, y -- координаты центра вершины
+; r -- радиус (или другой параметр) фигуры, изображающей вершину
+; функция рисует вершину (форма зависит от констант)
+;###############################################################################
 (define (draw-vertice dc x y r)
   (let
     ((2pi/3 (/ (* 2 pi) 3)))
