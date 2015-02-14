@@ -3,11 +3,10 @@
 (require plot)
 (require racket/class)
 (require racket/draw)
-(require racket/list)
 
-(require racket/math)
 
 ; константы:
+(define pi 3.141592653)
 (define c-spring 2.0)
 (define c-repulsion 1.0)
 (define nat-length 1.0)
@@ -220,6 +219,18 @@
   (helper '() vertices-num))
 
 ;###############################################################################
+; вспомогательные функции
+;###############################################################################
+(define (range n)
+  (define (helper lst m)
+    (if (= m 0)
+      (cons 0 lst)
+      (helper (cons m lst) (- m 1))))
+  (helper '() (- n 1)))
+
+(define (sqr n)
+  (* n n))
+;###############################################################################
 ; (define bitmap (make-bitmap 300 300))
 ; (define dc (new bitmap-dc% [bitmap bitmap]))
 ; (send dc set-background "white")
@@ -228,13 +239,13 @@
 ; (send dc set-transformation (vector (send dc get-initial-matrix) 0 0 1 1 0))
 ; (send dc draw-rectangle 10 10 10 10)
 ; (send bitmap save-file "Test.png" 'png)
-(define graph (list
-                (cons 1 2) (cons 2 3) (cons 3 0)
-                (cons 6 2) (cons 4 6) (cons 5 7)
-                (cons 3 2) (cons 8 9) (cons 8 6)))
-(define vertices '(0 1 2 3 4 5 6 7 8 9))
-(define coords (initialize 10))
-(define v-coords (apply vector coords))
-(define mss (list 1 2))
-(draw-result graph vertices mss)
+; (define graph (list
+                ; (cons 1 2) (cons 2 3) (cons 3 0)
+                ; (cons 6 2) (cons 4 6) (cons 5 7)
+                ; (cons 3 2) (cons 8 9) (cons 8 6)))
+; (define vertices '(0 1 2 3 4 5 6 7 8 9))
+; (define coords (initialize 10))
+; (define v-coords (apply vector coords))
+; (define mss (list 1 2))
+; (draw-result graph vertices mss)
 
