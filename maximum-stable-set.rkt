@@ -263,6 +263,7 @@
           #:title "Statistics"
           #:x-label "Algorith iteration"
           #:y-label "Fitness"
+          #:legend-anchor 'bottom-right
           #:out-file "Statistics.jpeg"
           #:out-kind 'jpeg)))
 
