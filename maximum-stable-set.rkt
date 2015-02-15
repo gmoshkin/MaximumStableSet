@@ -11,18 +11,23 @@
 
 (define (main graph K)
 
-  ; consts
-  (define POP-SIZE 4) ; population size
+  ;###################### consts ############################
+  (define POP-SIZE 12) ; population size, must be even
+  (define const-fitness-duration 15)
+  (define generation-numb-max 20000)
+  (define crossover-prob 0.8)
+  (define mutate-prob 0.1)
 
   ; return list of nodes
   ; TODO: make our own implementation of used racket/list functions 
   (define (get-nodes graph)
     (remove-duplicates (flatten graph)))
 
-  ; useful data
+  ;###################### useful data ############################
   (define nodes (get-nodes graph))
   (define nodes-number (length nodes))
 
+  ;###################### initialization ############################
   ; generates POP-SIZE random population, each vector of nodes-number size
   (define (random-population)
     ; generate binary vector of nodes-number length
@@ -38,6 +43,7 @@
 
     (gen-population '()))
 
+  ;###################### fitness function calculation ############################
   ; calculate fitness function of solution
   (define (ff solution)
     (let*
@@ -93,15 +99,99 @@
         (lambda (x) (car x))
         solution-with-names)))
 
+  ;###################### choosing parents ############################
+  ; select n parents with a roulette wheel
+  (define (select-parents population-with-ffs n)
+    ; run a roulette wheel
+    (define (select-parent)
+      (define rand (/ (random 1000001) 1000000))
+
+      (define (normalize-pairs)
+        (let ((sum (foldl + 0 (map (lambda (x) (cdr x)) population-with-ffs))))
+          (map
+            (lambda (x) (cons (car x) (/ (cdr x) sum)))
+            population-with-ffs)))
+
+      (define (select-el-rec pairs outcome checked)
+        (if (null? pairs)
+          '() ;should never be here
+          (let ((next (+ checked (cdar pairs))))
+            (if (<= outcome next)
+              (caar pairs)
+              (select-el-rec (cdr pairs) outcome next)))))
+
+      (select-el-rec (normalize-pairs) rand 0)
+    )
+
+    (define (select-parents-cycle parents)
+      (if (= (length parents) n )
+        parents
+        (select-parents-cycle (cons (select-parent) parents)))
+    )
+
+    (select-parents-cycle '()))
+
+  ;###################### give birth to a new generation ############################
+  (define (give-birth parents)
+    (define (crossover pair)
+        (if (< crossover-prob (random))
+          (list (car pair) (cdr pair))
+          (let ( (sep (quotient nodes-number 2)) )
+            (let
+              ((head1 (take-els (car pair) sep))
+                (head2 (take-els (cdr pair) sep))
+                (tail1 (list-tail (car pair) sep))
+                (tail2 (list-tail (cdr pair) sep)))
+              (list (append head1 tail2) (append head2 tail1))))))
+
+    ; make a crossover with crossover-prob probability
+    (flatten-once (map crossover parents)))
+
+    (define (mutate solution)
+      (map
+        (lambda (x)
+          (if (< (random) mutate-prob)
+            (not x)
+            x))
+        solution))
+
    ; compare two (solution . solution's fitness) pairs
   (define (sol-f> sf1 sf2)
     (> (cdr sf1) (cdr sf2)))
 
+  ;###################### main cycle ############################
   ; one cycle - one population
-  (define (main-cycle population-with-ffs generation-numb)
+  (define (main-cycle population-with-ffs generation-numb best-fitness best-fitness-duration)
     (let*
-      ((n 2))
-      population-with-ffs))
+      ((best (car population-with-ffs))
+       (new-best-fitness (cdr best))
+       (new-duration 
+         (if (= new-best-fitness best-fitness) 
+           (+ 1 best-fitness-duration)
+           1)))
+      (if (or (= new-duration const-fitness-duration) (= generation-numb generation-numb-max))
+        ; the end of the process
+        (let*
+          ((answer-vertices (solution-to-vertex-names (car best)))
+           (answer-size (length answer-vertices)))
+          (list
+            answer-size
+            answer-vertices))
+        ; continue
+        (let*
+          ((mothers (select-parents population-with-ffs (/ POP-SIZE 2)))
+            (fathers (select-parents population-with-ffs (/ POP-SIZE 2)))
+            (new-generation (give-birth (zip fathers mothers)))
+            (new-generation-mutated (map mutate new-generation))
+            (new-population-with-ffs (map (lambda (x) (cons x (ff x))) new-generation-mutated))
+            (new-old-populations-together (append new-population-with-ffs population-with-ffs))
+            (new-old-populations-together-sorted (sort new-old-populations-together sol-f>))
+            (strongest-guys (take-els new-old-populations-together-sorted POP-SIZE)))
+          (main-cycle
+            strongest-guys
+            (+ 1 generation-numb)
+            new-best-fitness
+            new-duration)))))
   
   ; initialize population, calculate their fitness functions, sort them, and go to the main cycle
   (main-cycle
@@ -109,7 +199,7 @@
       (map (lambda (x) (cons x (ff x))) (random-population))
       ; (map (lambda (x) (cons x (ff x))) '((#t #f #f #f)))
       sol-f>)
-    0))
+    1 0 0))
 
 
 ;#######################################################
@@ -317,8 +407,19 @@
           0))
       bin-lst))
 
-(define (zip lst1 lst2) 
+(define (zip lst1 lst2)
   (map cons lst1 lst2))
+
+(define (flatten-once lst)
+  (apply append lst))
+
+;take N first elements from lst
+(define (take-els lst N)
+  (define (take-cycle lst res n)
+    (if (= n N)
+      res
+      (take-cycle (cdr lst) (cons (car lst) res) (+ n 1))))
+  (reverse (take-cycle lst '() 0)))
 
 ;###############################################################################
 
@@ -333,4 +434,4 @@
 ; (draw-result graph vertices mss)
 ; (send bitmap save-file "Test.png" 'png)
 
-(main '((a b) (b c) (c d) (a d) (a e)) 2)
+(main '((a b) (b c) (b f) (c d) (a d) (a e)) 2)
