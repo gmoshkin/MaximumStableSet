@@ -29,7 +29,7 @@
                       rest
                       (random (+ 1 (/ (* rest-num (- rest-num 1)) 2))))
                     graph)))
-    (cons dominants graph)))
+    (cons (map car (filter (lambda (x) (pair? (cdr x))) dominations)) graph)))
 
 ;###############################################################################
 ; vertices -- вершины
@@ -689,6 +689,7 @@
              (cons (list n-verts cpu) cpus)))
          '()
          lst)))
+    (displayln cpus)
     (plot (list (lines cpus #:color 1))
           #:title "Speed"
           #:x-label "Test size"
@@ -696,6 +697,6 @@
           #:out-file "Time.jpeg"
           #:out-kind 'jpeg)))
 
-(time-stat '(10 25 50 100 125 150) 3)
+; (time-stat '(5 10 15 20 25) 3)
 
 (test 1 6 3)
