@@ -25,7 +25,7 @@
      ; списки вершин, с которыми соединены доминантные вершины
      (dominations (generate-dominations vertices dominants))
      (graph (dominations->graph dominations))
-     (graph (make-edges graph dominations))
+     (graph (make-edges graph dominations)))
     ; (displayln dominations)
     ; (displayln graph)
     (cons (map car (filter (lambda (x) (pair? (cdr x))) dominations)) graph)))
@@ -709,6 +709,6 @@
           #:out-file "Time.jpeg"
           #:out-kind 'jpeg)))
 
-; (time-stat '(10 15 20 25 30 35 40 45 50 60) 2)
+(time-stat '(10 15 20 25 30 35 40 45 50 60 70 80 90 100 120 140 160 180 200 230 260) 3)
 
-(test 10 20 3)
+; (test 10 20 3)
