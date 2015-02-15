@@ -88,6 +88,47 @@
   (helper '() n))
 
 ;###############################################################################
+; Функция для тестирования
+;###############################################################################
+(define (test n vertices-num dominants-num)
+  (define (testing-cycle total-tests right-tests)
+    (if (= total-tests n)
+      (begin
+        (newline)
+        (printf "Тестирование завершено\n")
+        (printf "Успешных тестов: ~a\n" right-tests)
+        (printf "Проваленных тестов: ~a\n" (- total-tests right-tests))
+        (printf "Всего тестов:  ~a\n" total-tests)
+        (printf "Точность: ~a\n" (/ right-tests (* 1.0 total-tests)))
+      )
+      (let*
+        ((test-with-answer (generate-test vertices-num dominants-num))
+         (test-task (cdr test-with-answer))
+         (optimal-dominant-vertices (car test-with-answer))
+         (optimal-cardinality (length optimal-dominant-vertices))
+         (genetic-answer (maximum-stable-set test-task))
+         (genetic-cardinality (car genetic-answer))
+         (genetic-dominant-vertices (cdr genetic-answer))
+         (test-failed (not (= optimal-cardinality genetic-cardinality))))
+        (if test-failed
+          (begin
+            (draw-result test-task (distinct (flatten-once test-task)) optimal-dominant-vertices "right_res.jpg")
+            (printf "Тест провален\n")
+            (displayln "Исходный граф:")
+            (displayln test-task)
+            (printf "Правильная мощность минимального множества доминантных вершин: ~a\n" optimal-cardinality)
+            (display "Пример такого множества: ")
+            (displayln optimal-dominant-vertices)
+            (printf "Мощность множества доминантных вершин, полученная генетическим алгоритмом: ~a\n" genetic-cardinality)
+            (display "Множество доминантных вершин, полученное генетическим алгоритмом: ")
+            (displayln genetic-dominant-vertices)
+            (testing-cycle (+ 1 total-tests) right-tests)
+            )
+          (testing-cycle (+ 1 total-tests) (+ 1 right-tests))))))
+
+  (testing-cycle 0 0))
+
+;###############################################################################
 ; Генетический алгоритм
 ;###############################################################################
 (define (main graph K)
@@ -618,17 +659,12 @@
 
 ;###############################################################################
 
+; (define graph (generate-test 6 3))
 ; (main '((a b) (b c) (b f) (c d) (a d) (a e)) 2)
 ; (define graph '((a b) (b c) (b f) (c d) (a d) (a e)))
 ; (define vertices (distinct (flatten-once graph)))
 ; (define mss '(a b))
 ; (draw-result graph vertices mss)
-; (define graph (generate-test 6 2))
-; (define vertices (distinct (flatten-once graph)))
-; (define mss (filter negative? vertices))
-; (displayln graph)
-; (draw-result graph vertices mss)
-; (sublist? (range 10) '(1 0))
 
 (define (time-stat lst n)
   (define (foo vertices-num dominants-num i cpus)
@@ -661,3 +697,5 @@
           #:out-kind 'jpeg)))
 
 (time-stat '(10 25 50 100 125 150) 3)
+
+(test 1 6 3)
