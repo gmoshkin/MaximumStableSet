@@ -4,38 +4,36 @@
 (require racket/class)
 (require racket/draw)
 
-; call example: (main'((a b) (b c) (b f) (c d) (a d) (a e)) 2)
-
 (define (main graph K)
   (let ((result (maximum-stable-set graph)))
     (if (<= (car result) K)
       (list #t (car result) (cdr result))
       #f)))
 
-; returns pair (|W| . W)
+; Возвращает пару (|W| . W)
 (define (maximum-stable-set graph)
 
-  ;###################### consts ############################
-  (define pop-size 100) ; population size, must be even
+  ;###################### констатнты ############################
+  (define pop-size 100) ; размер популяции, должен быть четным
   (define const-fitness-duration 15)
   (define generation-numb-max 20000)
   (define crossover-prob 0.8)
   (define mutate-prob 0.1)
 
-  ; return list of nodes
-  (define (get-nodes graph)
+  ; список имен вершин графа
+  (define (get-vertices graph)
     (distinct (flatten-once graph)))
 
-  ;###################### useful data ############################
-  (define nodes (get-nodes graph))
-  (define nodes-number (length nodes))
+  ;###################### вспомогательные данные ############################
+  (define vertices (get-vertices graph))
+  (define vertices-number (length vertices))
 
-  ;###################### initialization ############################
-  ; generates pop-size random population, each vector of nodes-number size
+  ;###################### инициализация ############################
+  ; сгенерировать случайную популяцию размера pop-size, каждый член которой состоит из vertices-number элементов
   (define (random-population)
-    ; generate binary vector of nodes-number length
+    ; сгенерировать бинарный список длины vertices-number
     (define (gen-bin-vector lst)
-      (if (= (length lst) nodes-number )
+      (if (= (length lst) vertices-number )
         lst
         (gen-bin-vector (cons (= 1 (random 2)) lst))))
 
@@ -46,23 +44,23 @@
 
     (gen-population '()))
 
-  ;###################### fitness function calculation ############################
-  ; calculate fitness function of solution
+  ;###################### вычисление оценочной функции ############################
+  ; вычислить оценочную функцию данного кандидата на решение
   (define (ff solution)
     (let*
       ((coverage-vec (get-coverage-vec solution))
        (coverage (sum coverage-vec))
        (vertexes-taken (sum (binary-vec-to-int solution))))
       (+
-        (* 2 (/ coverage nodes-number))
-        (/ (+ 1 (* nodes-number vertexes-taken))))))
+        (* 2 (/ coverage vertices-number))
+        (/ (+ 1 (* vertices-number vertexes-taken))))))
 
-  ; returns the list of coverages (0 or 1) for each vertex in the solution 
+  ; возвращает список покрытия (0 или 1, покрывается или нет каждая вершина в данном решении) 
   (define (get-coverage-vec solution)
-    (define solution-with-names (zip solution nodes))
+    (define solution-with-names (zip solution vertices))
     (define taken-vertexes (solution-to-vertex-names solution))
 
-    ; check coverage (0 or 1) for a not-taken vertex
+    ; проверить покрытие для вершины, которая в данном решении не является доминатной
     (define (check-coverage vertex)
       (sgn (sum (map
         (lambda (taken-vertex)
@@ -78,19 +76,19 @@
           (check-coverage (cdr x))))
       solution-with-names))
 
-  ; convert genetic solution to vertex names
+  ; сконвертировать решение генетического алгоритма (бинарный список) в список имен вершин
   (define (solution-to-vertex-names solution)
-    (define solution-with-names (zip solution nodes))
+    (define solution-with-names (zip solution vertices))
     (map
       (lambda (x) (cdr x))  
       (filter
         (lambda (x) (car x))
         solution-with-names)))
 
-  ;###################### choosing parents ############################
-  ; select n parents with a roulette wheel
+  ;###################### выбор родителей ############################
+  ; выбрать из population-with-ffs n родителей методом рулетки
   (define (select-parents population-with-ffs n)
-    ; run a roulette wheel
+    ; запустить рулетку один раз
     (define (select-parent)
       (define rand (/ (random 1000001) 1000000))
 
@@ -102,7 +100,7 @@
 
       (define (select-el-rec pairs outcome checked)
         (if (null? pairs)
-          '() ;should never be here
+          '()
           (let ((next (+ checked (cdar pairs))))
             (if (<= outcome next)
               (caar pairs)
@@ -119,12 +117,12 @@
 
     (select-parents-cycle '()))
 
-  ;###################### give birth to a new generation ############################
+  ;###################### породить новое поколение ############################
   (define (give-birth parents)
     (define (crossover pair)
         (if (< crossover-prob (random))
           (list (car pair) (cdr pair))
-          (let ( (sep (quotient nodes-number 2)) )
+          (let ( (sep (quotient vertices-number 2)) )
             (let
               ((head1 (take-els (car pair) sep))
                 (head2 (take-els (cdr pair) sep))
@@ -132,10 +130,10 @@
                 (tail2 (list-tail (cdr pair) sep)))
               (list (append head1 tail2) (append head2 tail1))))))
 
-    ; make a crossover with crossover-prob probability
+    ; сделать кроссовер с вероятностью crossover-prob
     (flatten-once (map crossover parents)))
 
-  ;###################### mutation ############################
+  ;###################### мутация ############################
     (define (mutate solution)
       (map
         (lambda (x)
@@ -144,12 +142,12 @@
             x))
         solution))
 
-   ; compare two (solution . solution's fitness) pairs
+   ; сравнить две пары (solution . solution's fitness)
   (define (sol-f> sf1 sf2)
     (> (cdr sf1) (cdr sf2)))
 
-  ;###################### main cycle ############################
-  ; one cycle - one population
+  ;###################### главный цикл ############################
+  ; одна итерация цикла соответствует одному поколению
   (define (maximum-stable-set-cycle population-with-ffs generation-numb best-fitness best-fitness-duration fitnesses-history)
     (let*
       ((best (car population-with-ffs))
@@ -158,7 +156,7 @@
          (if (= new-best-fitness best-fitness) 
            (+ 1 best-fitness-duration)
            1))
-       ; for process rendering
+       ; данные для визуализации процесса приближения
        (new-avg-fitness (cdr (list-ref population-with-ffs (- (length population-with-ffs) 1))))
        (new-worst-fitness (cdr (list-ref population-with-ffs (/ (length population-with-ffs) 2))))
        (new-best-fitnesses-lst (cons new-best-fitness (car fitnesses-history)))
@@ -166,15 +164,16 @@
        (new-worst-fitnesses-lst (cons new-worst-fitness (caddr fitnesses-history)))
        (new-fitnesses-history (list new-best-fitnesses-lst new-avg-fitnesses-lst new-worst-fitnesses-lst)))
       (if (or (= new-duration const-fitness-duration) (= generation-numb generation-numb-max))
-        ; the end of the process
+        ; условие конца алгоритма выполнено
         (let*
           ((answer-vertices (solution-to-vertex-names (car best)))
            (answer-size (length answer-vertices)))
           (draw-statistics (map (lambda (x) (reverse x)) new-fitnesses-history))
+          ; (draw-result graph vertices answer-vertices)
           (cons
             answer-size
             answer-vertices))
-        ; continue
+        ; условие конца алгоритма еще не выполнено
         (let*
           ((mothers (select-parents population-with-ffs (/ pop-size 2)))
             (fathers (select-parents population-with-ffs (/ pop-size 2)))
@@ -190,8 +189,8 @@
             new-best-fitness
             new-duration
             new-fitnesses-history)))))
-  
-  ; initialize population, calculate their fitness functions, sort them, and go to the main cycle
+
+  ; инициализация первой популяции, вычисление их оценочных функций, сортировка и переход в главный цикл
   (maximum-stable-set-cycle
     (sort
       (map (lambda (x) (cons x (ff x))) (random-population))
@@ -217,8 +216,8 @@
 (define edge-kind 'dot)
 (define edge-thickness 2)
 (define background-color "white")
-(define image-width 700)
-(define image-height 700)
+(define image-width 500)
+(define image-height 500)
 (define margin-x 50)
 (define margin-y 50)
 
@@ -300,7 +299,7 @@
         ((eqv? (caar vertices) vertex)
          (cdar vertices))
         (else
-          (helper vertex (cdr vertices)))))
+          (vertex->index vertex (cdr vertices)))))
 
 ;###############################################################################
 ; dc -- объект типа контекст рисования
@@ -442,10 +441,10 @@
 ; Просто полезные функции
 ;###############################################################################
 
-; sum of a list
+; сумма элементов списка
 (define (sum lst) (foldl + 0 lst))
 
-; convert binary list to a list of integers
+; сконвертировать бинарный список в список из целых чисел
 (define (binary-vec-to-int bin-lst)
     (map
       (lambda (x)
@@ -460,7 +459,7 @@
 (define (flatten-once lst)
   (apply append lst))
 
-;take N first elements from lst
+; взять N первых элементов списка
 (define (take-els lst N)
   (define (take-cycle lst res n)
     (if (= n N)
@@ -495,5 +494,7 @@
 ;###############################################################################
 
 ; (main '((a b) (b c) (b f) (c d) (a d) (a e)) 2)
-(define graph '((a b) (b c) (b f) (c d) (a d) (a e)))
-
+; (define graph '((a b) (b c) (b f) (c d) (a d) (a e)))
+; (define vertices (distinct (flatten-once graph)))
+; (define mss '(a b))
+; (draw-result graph vertices mss)
