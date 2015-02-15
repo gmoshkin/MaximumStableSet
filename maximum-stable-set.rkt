@@ -54,7 +54,7 @@
        (coverage (sum coverage-vec))
        (vertexes-taken (sum (binary-vec-to-int solution))))
       (+
-        (/ coverage nodes-number)
+        (* 2 (/ coverage nodes-number))
         (/ (+ 1 (* nodes-number vertexes-taken))))))
 
   ; returns the list of coverages (0 or 1) for each vertex in the solution 
@@ -150,6 +150,7 @@
     ; make a crossover with crossover-prob probability
     (flatten-once (map crossover parents)))
 
+  ;###################### mutation ############################
     (define (mutate solution)
       (map
         (lambda (x)
@@ -174,12 +175,17 @@
            1))
        ; for process rendering
        (new-avg-fitness (cdr (list-ref population-with-ffs (- (length population-with-ffs) 1))))
-       (new-worst-fitness (cdr (list-ref population-with-ffs (/ (length population-with-ffs) 2)))))
+       (new-worst-fitness (cdr (list-ref population-with-ffs (/ (length population-with-ffs) 2))))
+       (new-best-fitnesses-lst (cons new-best-fitness (car fitnesses-history)))
+       (new-avg-fitnesses-lst (cons new-avg-fitness (cadr fitnesses-history)))
+       (new-worst-fitnesses-lst (cons new-worst-fitness (caddr fitnesses-history)))
+       (new-fitnesses-history (list new-best-fitnesses-lst new-avg-fitnesses-lst new-worst-fitnesses-lst)))
       (if (or (= new-duration const-fitness-duration) (= generation-numb generation-numb-max))
         ; the end of the process
         (let*
           ((answer-vertices (solution-to-vertex-names (car best)))
            (answer-size (length answer-vertices)))
+          (draw-statistics (map (lambda (x) (reverse x)) new-fitnesses-history))
           (cons
             answer-size
             answer-vertices))
@@ -198,14 +204,14 @@
             (+ 1 generation-numb)
             new-best-fitness
             new-duration
-            (cons (list new-best-fitness new-avg-fitness new-worst-fitness) fitnesses-history))))))
+            new-fitnesses-history)))))
   
   ; initialize population, calculate their fitness functions, sort them, and go to the main cycle
   (maximum-stable-set-cycle
     (sort
       (map (lambda (x) (cons x (ff x))) (random-population))
       sol-f>)
-    1 0 0 '()))
+    1 0 0 '(() () ())))
 
 
 ;#######################################################
