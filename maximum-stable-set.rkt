@@ -4,12 +4,18 @@
 (require racket/class)
 (require racket/draw)
 (require racket/list)
-
 (require racket/math)
 
-; call example: (main '((a b) (b c) (c d) (a d)) 2)
+; call example: (main'((a b) (b c) (b f) (c d) (a d) (a e)) 2)
 
 (define (main graph K)
+  (let ((result (maximum-stable-set graph)))
+    (if (<= (car result) K)
+      (list #t (car result) (cdr result))
+      #f)))
+
+; returns pair (|W| . W)
+(define (maximum-stable-set graph)
 
   ;###################### consts ############################
   (define pop-size 100) ; population size, must be even
@@ -161,7 +167,7 @@
 
   ;###################### main cycle ############################
   ; one cycle - one population
-  (define (main-cycle population-with-ffs generation-numb best-fitness best-fitness-duration)
+  (define (maximum-stable-set-cycle population-with-ffs generation-numb best-fitness best-fitness-duration)
     (let*
       ((best (car population-with-ffs))
        (new-best-fitness (cdr best))
@@ -174,7 +180,7 @@
         (let*
           ((answer-vertices (solution-to-vertex-names (car best)))
            (answer-size (length answer-vertices)))
-          (list
+          (cons
             answer-size
             answer-vertices))
         ; continue
@@ -187,17 +193,16 @@
             (new-old-populations-together (append new-population-with-ffs population-with-ffs))
             (new-old-populations-together-sorted (sort new-old-populations-together sol-f>))
             (strongest-guys (take-els new-old-populations-together-sorted pop-size)))
-          (main-cycle
+          (maximum-stable-set-cycle
             strongest-guys
             (+ 1 generation-numb)
             new-best-fitness
             new-duration)))))
   
   ; initialize population, calculate their fitness functions, sort them, and go to the main cycle
-  (main-cycle
+  (maximum-stable-set-cycle
     (sort
       (map (lambda (x) (cons x (ff x))) (random-population))
-      ; (map (lambda (x) (cons x (ff x))) '((#t #f #f #f)))
       sol-f>)
     1 0 0))
 
@@ -434,4 +439,5 @@
 ; (draw-result graph vertices mss)
 ; (send bitmap save-file "Test.png" 'png)
 
-(main '((a b) (b c) (b f) (c d) (a d) (a e)) 2)
+; (maximum-stable-set '((a b) (b c) (b f) (c d) (a d) (a e)))
+(main'((a b) (b c) (b f) (c d) (a d) (a e)) 2)
