@@ -23,38 +23,45 @@
      (rest (cdr (range (+ 1 rest-num))))
      (vertices (append dominants rest))
      ; списки вершин, с которыми соединены доминантные вершины
-     (dominations (generate-dominations vertices))
+     (dominations (generate-dominations vertices dominants))
      (graph (dominations->graph dominations))
-     (graph (append (random-graph
-                      rest
-                      (random (+ 1 (/ (* rest-num (- rest-num 1)) 2))))
-                    graph)))
+     ; (graph (append (random-graph
+                      ; rest
+                      ; (random (+ 1 (/ (* rest-num (- rest-num 1)) 2))))
+                    ; graph))
+                    )
+    (displayln dominations)
+    (displayln graph)
     (cons (map car (filter (lambda (x) (pair? (cdr x))) dominations)) graph)))
 
 ;###############################################################################
 ; vertices -- вершины
 ; функция генерирует наборы рёбер, с которыми соединены доминирующие вершины
 ;###############################################################################
-(define (generate-dominations vertices)
-  (define (no-good? dominants candidate)
-    (cond	((null? dominants) #f)
-          ((or (sublist? (car dominants) candidate)
-               (sublist? candidate (car dominants))) #t)
-          (else (no-good? (cdr dominants) candidate))))
-  (define (helper ready not-ready not-used-vertices)
-    (cond ((null? not-ready) ready)
-          ((and (null? (cdr not-ready)) (pair? not-used-vertices))
-           (cons (cons (caar not-ready) not-used-vertices) ready))
-          (else
-            (let
-              ((candidate
-                 (cons (caar not-ready)
-                       (random-sublist vertices (random (length vertices))))))
-              (if (no-good? ready candidate)
-                (helper ready not-ready not-used-vertices)
+(define (generate-dominations vertices dominants)
+  
+  (let*
+    ((reserved (random-sublist (difference vertices dominants) (length dominants)))
+     (rest (difference vertices reserved)))
+    (define (helper ready not-ready not-used-vertices reserved-vertices)
+      (cond ((null? not-ready) ready)
+            ((and (null? (cdr not-ready)) (pair? not-used-vertices))
+             (cons (cons (caar not-ready)
+                         (cons (car reserved-vertices)
+                               not-used-vertices)) ready))
+            (else
+              (let
+                ((candidate
+                   (cons
+                     (caar not-ready)
+                     (cons
+                       (car reserved-vertices)
+                       (random-sublist rest (random (length rest)))))))
                 (helper (cons candidate ready) (cdr not-ready)
-                        (difference not-used-vertices candidate)))))))
-  (helper '() (map list (filter negative? vertices)) vertices))
+                        (difference not-used-vertices candidate)
+                        (cdr reserved-vertices))))))
+    (displayln reserved)
+    (helper '() (map list dominants) rest reserved)))
 
 ;###############################################################################
 ; dominations -- список наборов рёбер, с которыми соединены доминирующие вершины
@@ -697,6 +704,6 @@
           #:out-file "Time.jpeg"
           #:out-kind 'jpeg)))
 
-; (time-stat '(5 10 15 20 25) 3)
+; (time-stat '(9) 1)
 
-(test 1 6 3)
+(test 1 20 3)
