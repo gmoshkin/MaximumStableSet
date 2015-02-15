@@ -54,7 +54,7 @@
        (coverage (sum coverage-vec))
        (vertexes-taken (sum (binary-vec-to-int solution))))
       (+
-        (/ coverage nodes-number)
+        (* 2 (/ coverage nodes-number))
         (/ (+ 1 (* nodes-number vertexes-taken))))))
 
   ; returns the list of coverages (0 or 1) for each vertex in the solution 
@@ -64,24 +64,9 @@
 
     ; check coverage (0 or 1) for a not-taken vertex
     (define (check-coverage vertex)
-      ; check for existence (0 or 1) an edge between two vertices in graph
-      (define (exist-edge-between v1 v2)
-        ; check (#t or #f) that given edge connects two given vertices
-        (define (this-edge-connects-these-vertices edge v1 v2)
-          (or
-            (and (eqv? v1 (car edge)) (eqv? v2 (cadr edge)))
-            (and (eqv? v1 (cadr edge)) (eqv? v2 (car edge)))))
-
-        (sgn (sum (map
-          (lambda (edge)
-            (if (this-edge-connects-these-vertices edge v1 v2)
-              1
-              0))
-          graph))))
-
       (sgn (sum (map
         (lambda (taken-vertex)
-          (if (= 1 (exist-edge-between vertex taken-vertex))
+          (if (adjacent? vertex taken-vertex graph)
             1
             0))
         taken-vertexes))))
@@ -150,6 +135,7 @@
     ; make a crossover with crossover-prob probability
     (flatten-once (map crossover parents)))
 
+  ;###################### mutation ############################
     (define (mutate solution)
       (map
         (lambda (x)
@@ -174,12 +160,17 @@
            1))
        ; for process rendering
        (new-avg-fitness (cdr (list-ref population-with-ffs (- (length population-with-ffs) 1))))
-       (new-worst-fitness (cdr (list-ref population-with-ffs (/ (length population-with-ffs) 2)))))
+       (new-worst-fitness (cdr (list-ref population-with-ffs (/ (length population-with-ffs) 2))))
+       (new-best-fitnesses-lst (cons new-best-fitness (car fitnesses-history)))
+       (new-avg-fitnesses-lst (cons new-avg-fitness (cadr fitnesses-history)))
+       (new-worst-fitnesses-lst (cons new-worst-fitness (caddr fitnesses-history)))
+       (new-fitnesses-history (list new-best-fitnesses-lst new-avg-fitnesses-lst new-worst-fitnesses-lst)))
       (if (or (= new-duration const-fitness-duration) (= generation-numb generation-numb-max))
         ; the end of the process
         (let*
           ((answer-vertices (solution-to-vertex-names (car best)))
            (answer-size (length answer-vertices)))
+          (draw-statistics (map (lambda (x) (reverse x)) new-fitnesses-history))
           (cons
             answer-size
             answer-vertices))
@@ -198,14 +189,14 @@
             (+ 1 generation-numb)
             new-best-fitness
             new-duration
-            (cons (list new-best-fitness new-avg-fitness new-worst-fitness) fitnesses-history))))))
+            new-fitnesses-history)))))
   
   ; initialize population, calculate their fitness functions, sort them, and go to the main cycle
   (maximum-stable-set-cycle
     (sort
       (map (lambda (x) (cons x (ff x))) (random-population))
       sol-f>)
-    1 0 0 '()))
+    1 0 0 '(() () ())))
 
 
 ;#######################################################
@@ -420,7 +411,7 @@
   (cond
     ((null? graph)
      #f)
-    ((or (equal? (cons v1 v2) (car graph)) (equal? (cons v2 v1) (car graph)))
+    ((or (equal? (list v1 v2) (car graph)) (equal? (list v2 v1) (car graph)))
      #t)
     (else
       (adjacent? v1 v2 (cdr graph)))))
@@ -500,4 +491,5 @@
 
 ;###############################################################################
 
-(main'((a b) (b c) (b f) (c d) (a d) (a e)) 2)
+(main '((a b) (b c) (b f) (c d) (a d) (a e)) 2)
+
