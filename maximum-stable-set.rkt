@@ -25,10 +25,11 @@
      ; списки вершин, с которыми соединены доминантные вершины
      (dominations (generate-dominations vertices))
      (graph (dominations->graph dominations))
-     (graph (append (random-graph rest
-                                  (random (+ 1 (/ (* rest-num (- rest-num 1)) 2))))
+     (graph (append (random-graph
+                      rest
+                      (random (+ 1 (/ (* rest-num (- rest-num 1)) 2))))
                     graph)))
-    graph))
+    (cons dominans graph)))
 
 ;###############################################################################
 ; vertices -- вершины
