@@ -64,24 +64,9 @@
 
     ; check coverage (0 or 1) for a not-taken vertex
     (define (check-coverage vertex)
-      ; check for existence (0 or 1) an edge between two vertices in graph
-      (define (exist-edge-between v1 v2)
-        ; check (#t or #f) that given edge connects two given vertices
-        (define (this-edge-connects-these-vertices edge v1 v2)
-          (or
-            (and (eqv? v1 (car edge)) (eqv? v2 (cadr edge)))
-            (and (eqv? v1 (cadr edge)) (eqv? v2 (car edge)))))
-
-        (sgn (sum (map
-          (lambda (edge)
-            (if (this-edge-connects-these-vertices edge v1 v2)
-              1
-              0))
-          graph))))
-
       (sgn (sum (map
         (lambda (taken-vertex)
-          (if (= 1 (exist-edge-between vertex taken-vertex))
+          (if (adjacent? vertex taken-vertex graph)
             1
             0))
         taken-vertexes))))
@@ -425,7 +410,7 @@
   (cond
     ((null? graph)
      #f)
-    ((or (equal? (cons v1 v2) (car graph)) (equal? (cons v2 v1) (car graph)))
+    ((or (equal? (list v1 v2) (car graph)) (equal? (list v2 v1) (car graph)))
      #t)
     (else
       (adjacent? v1 v2 (cdr graph)))))
@@ -505,4 +490,5 @@
 
 ;###############################################################################
 
-(main'((a b) (b c) (b f) (c d) (a d) (a e)) 2)
+(main '((a b) (b c) (b f) (c d) (a d) (a e)) 2)
+
