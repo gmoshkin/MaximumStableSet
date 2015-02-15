@@ -167,14 +167,17 @@
 
   ;###################### main cycle ############################
   ; one cycle - one population
-  (define (maximum-stable-set-cycle population-with-ffs generation-numb best-fitness best-fitness-duration)
+  (define (maximum-stable-set-cycle population-with-ffs generation-numb best-fitness best-fitness-duration fitnesses-history)
     (let*
       ((best (car population-with-ffs))
        (new-best-fitness (cdr best))
        (new-duration 
          (if (= new-best-fitness best-fitness) 
            (+ 1 best-fitness-duration)
-           1)))
+           1))
+       ; for process rendering
+       (new-avg-fitness (cdr (list-ref population-with-ffs (- (length population-with-ffs) 1))))
+       (new-worst-fitness (cdr (list-ref population-with-ffs (/ (length population-with-ffs) 2)))))
       (if (or (= new-duration const-fitness-duration) (= generation-numb generation-numb-max))
         ; the end of the process
         (let*
@@ -197,14 +200,15 @@
             strongest-guys
             (+ 1 generation-numb)
             new-best-fitness
-            new-duration)))))
+            new-duration
+            (cons (list new-best-fitness new-avg-fitness new-worst-fitness) fitnesses-history))))))
   
   ; initialize population, calculate their fitness functions, sort them, and go to the main cycle
   (maximum-stable-set-cycle
     (sort
       (map (lambda (x) (cons x (ff x))) (random-population))
       sol-f>)
-    1 0 0))
+    1 0 0 '()))
 
 
 ;#######################################################
