@@ -255,7 +255,7 @@
           ((answer-vertices (solution-to-vertex-names (car best)))
            (answer-size (length answer-vertices)))
           (draw-statistics (map (lambda (x) (reverse x)) new-fitnesses-history))
-          ; (draw-result graph vertices answer-vertices)
+          (draw-result graph vertices answer-vertices "Result.jpeg")
           (cons
             answer-size
             answer-vertices))
@@ -337,7 +337,7 @@
 ; функция вызывает функцию draw-graph проведя подготовку и сохраняет результат
 ; в файл Result.jpeg
 ;###############################################################################
-(define (draw-result src-graph src-vertices src-mss)
+(define (draw-result src-graph src-vertices src-mss file-name)
   (let*
     ((vertices-indexes (zip src-vertices (range (length src-vertices))))
      (graph (map (lambda (edge)
@@ -372,7 +372,7 @@
                                         ; origin-x origin-y scale-x scale-y 0))
     (draw-graph dc graph coordinates mss origin-x origin-y scale-x scale-y
                 (/ image-width 100))
-    (send bitmap save-file "Result.jpeg" 'jpeg)))
+    (send bitmap save-file file-name 'jpeg)))
 
 ;###############################################################################
 ; vertex -- врешина
@@ -623,9 +623,41 @@
 ; (define vertices (distinct (flatten-once graph)))
 ; (define mss '(a b))
 ; (draw-result graph vertices mss)
-(define graph (generate-test 6 2))
-(define vertices (distinct (flatten-once graph)))
-(define mss (filter negative? vertices))
-(displayln graph)
-(draw-result graph vertices mss)
+; (define graph (generate-test 6 2))
+; (define vertices (distinct (flatten-once graph)))
+; (define mss (filter negative? vertices))
+; (displayln graph)
+; (draw-result graph vertices mss)
 ; (sublist? (range 10) '(1 0))
+
+(define (time-stat lst n)
+  (define (foo vertices-num dominants-num i cpus)
+    (if (< i n)
+      (let*-values
+        ([(test) (generate-test vertices-num dominants-num)]
+         [(sol cpu real garbage)
+          (time-apply main (list (cdr test) (length (car test))))])
+        (printf
+          "***** ~a:~a *****\n\tres: ~a\n\tCPU: ~a\n\tREAL: ~a\n\t garbage: ~a\n"
+          vertices-num i sol cpu real garbage)
+        (foo vertices-num dominants-num (+ i 1) (cons cpu cpus)))
+      cpus))
+  (let*
+    ((cpus
+       (foldl
+         (lambda (n-verts cpus)
+           (let*
+             ((cpu (foo n-verts (quotient n-verts 3) 0 '()))
+              (cpu (/ (apply + cpu) n)))
+             (printf "~a verts:\n" n-verts)
+             (cons (list n-verts cpu) cpus)))
+         '()
+         lst)))
+    (plot (list (lines cpus #:color 1))
+          #:title "Speed"
+          #:x-label "Test size"
+          #:y-label "Time in seconds"
+          #:out-file "Time.jpeg"
+          #:out-kind 'jpeg)))
+
+(time-stat '(10 25 50 100 125 150) 3)
