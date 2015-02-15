@@ -88,6 +88,47 @@
   (helper '() n))
 
 ;###############################################################################
+; Функция для тестирования
+;###############################################################################
+(define (test n vertices-num dominants-num)
+  (define (testing-cycle total-tests right-tests)
+    (if (= total-tests n)
+      (begin
+        (newline)
+        (printf "Тестирование завершено\n")
+        (printf "Успешных тестов: ~a\n" right-tests)
+        (printf "Проваленных тестов: ~a\n" (- total-tests right-tests))
+        (printf "Всего тестов:  ~a\n" total-tests)
+        (printf "Точность: ~a\n" (/ right-tests (* 1.0 total-tests)))
+      )
+      (let*
+        ((test-with-answer (generate-test vertices-num dominants-num))
+         (test-task (cdr test-with-answer))
+         (optimal-dominant-vertices (car test-with-answer))
+         (optimal-cardinality (length optimal-dominant-vertices))
+         (genetic-answer (maximum-stable-set test-task))
+         (genetic-cardinality (car genetic-answer))
+         (genetic-dominant-vertices (cdr genetic-answer))
+         (test-failed (not (= optimal-cardinality genetic-cardinality))))
+        (if test-failed
+          (begin
+            (draw-result test-task (distinct (flatten-once test-task)) optimal-dominant-vertices "right_res.jpg")
+            (printf "Тест провален\n")
+            (displayln "Исходный граф:")
+            (displayln test-task)
+            (printf "Правильная мощность минимального множества доминантных вершин: ~a\n" optimal-cardinality)
+            (display "Пример такого множества: ")
+            (displayln optimal-dominant-vertices)
+            (printf "Мощность множества доминантных вершин, полученная генетическим алгоритмом: ~a\n" genetic-cardinality)
+            (display "Множество доминантных вершин, полученное генетическим алгоритмом: ")
+            (displayln genetic-dominant-vertices)
+            (testing-cycle (+ 1 total-tests) right-tests)
+            )
+          (testing-cycle (+ 1 total-tests) (+ 1 right-tests))))))
+
+  (testing-cycle 0 0))
+
+;###############################################################################
 ; Генетический алгоритм
 ;###############################################################################
 (define (main graph K)
@@ -255,7 +296,7 @@
           ((answer-vertices (solution-to-vertex-names (car best)))
            (answer-size (length answer-vertices)))
           (draw-statistics (map (lambda (x) (reverse x)) new-fitnesses-history))
-          ; (draw-result graph vertices answer-vertices)
+          (draw-result graph vertices answer-vertices "gen_res.jpg")
           (cons
             answer-size
             answer-vertices))
@@ -337,7 +378,7 @@
 ; функция вызывает функцию draw-graph проведя подготовку и сохраняет результат
 ; в файл Result.jpeg
 ;###############################################################################
-(define (draw-result src-graph src-vertices src-mss)
+(define (draw-result src-graph src-vertices src-mss file-name)
   (let*
     ((vertices-indexes (zip src-vertices (range (length src-vertices))))
      (graph (map (lambda (edge)
@@ -372,7 +413,7 @@
                                         ; origin-x origin-y scale-x scale-y 0))
     (draw-graph dc graph coordinates mss origin-x origin-y scale-x scale-y
                 (/ image-width 100))
-    (send bitmap save-file "Result.jpeg" 'jpeg)))
+    (send bitmap save-file file-name 'jpeg)))
 
 ;###############################################################################
 ; vertex -- врешина
@@ -618,14 +659,16 @@
 
 ;###############################################################################
 
+; (define graph (generate-test 6 3))
 ; (main '((a b) (b c) (b f) (c d) (a d) (a e)) 2)
 ; (define graph '((a b) (b c) (b f) (c d) (a d) (a e)))
 ; (define vertices (distinct (flatten-once graph)))
 ; (define mss '(a b))
 ; (draw-result graph vertices mss)
-(define graph (generate-test 6 2))
-(define vertices (distinct (flatten-once graph)))
-(define mss (filter negative? vertices))
-(displayln graph)
-(draw-result graph vertices mss)
+; (define vertices (distinct (flatten-once graph)))
+; (define mss (filter negative? vertices))
+; graph
+; (draw-result graph vertices mss)
 ; (sublist? (range 10) '(1 0))
+
+(test 1 6 3)
