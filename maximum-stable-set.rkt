@@ -25,7 +25,7 @@
      ; списки вершин, с которыми соединены доминантные вершины
      (dominations (generate-dominations vertices dominants))
      (graph (dominations->graph dominations))
-     (graph (make-edges graph dominations)))
+     (graph (make-edges graph dominations))
     ; (displayln dominations)
     ; (displayln graph)
     (cons (map car (filter (lambda (x) (pair? (cdr x))) dominations)) graph)))
@@ -55,7 +55,6 @@
                 (helper (cons candidate ready) (cdr not-ready)
                         (difference not-used-vertices candidate)
                         (cdr reserved-vertices))))))
-    (displayln reserved)
     (helper '() (map list dominants) rest reserved)))
 
 ;###############################################################################
@@ -82,9 +81,9 @@
     (if (null? left-dominations)
       tmp-graph
       (let*
-        ((vertices (car left-dominations))
-         (vertices-num (length vertices))
-         (edges-num (random (+ 1 (/ (* vertices-num (- vertices-num 1)) 2)))))
+        ((vertices (distinct (car left-dominations)))
+         (vertices-num (- (length vertices) 1))
+         (edges-num (random vertices-num)))
         (helper (append tmp-graph (random-graph vertices edges-num tmp-graph))
                 (cdr left-dominations)))))
   (helper graph (random-sublist dominations (random (length dominations)))))
@@ -208,12 +207,13 @@
 
     ; проверить покрытие для вершины, которая в данном решении не является доминатной
     (define (check-coverage vertex)
-      (sgn (sum (map
-        (lambda (taken-vertex)
-          (if (adjacent? vertex taken-vertex graph)
+      (define (check-coverage-cycle taken-vertexes)
+        (if (null? taken-vertexes)
+          0
+          (if (adjacent? vertex (car taken-vertexes) graph)
             1
-            0))
-        taken-vertexes))))
+            (check-coverage-cycle (cdr taken-vertexes)))))
+      (check-coverage-cycle taken-vertexes))
 
     (map
       (lambda (x)
@@ -709,6 +709,6 @@
           #:out-file "Time.jpeg"
           #:out-kind 'jpeg)))
 
-; (time-stat '(9) 1)
+; (time-stat '(10 15 20 25 30 35 40 45 50 60) 2)
 
 (test 10 20 3)
