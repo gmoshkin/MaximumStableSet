@@ -351,9 +351,9 @@
 (define (draw-vertice dc x y r)
   (let
     ((2pi/3 (/ (* 2 pi) 3)))
-    (cond ((eq? vertice-form 'square)
+    (cond ((eqv? vertice-form 'square)
           (send dc draw-rectangle (- x r) (- y r) (* 2 r) (* 2 r)))
-         ((eq? vertice-form 'traingle)
+         ((eqv? vertice-form 'traingle)
           (send dc draw-lines (list (cons (+ x (* (* 2 r) (cos 2pi/3)))
                                           (+ y (* (* 2 r) (sin 2pi/3))))
                                     (cons (+ x (* (* 2 r) (cos (* 2 2pi/3))))
@@ -362,7 +362,7 @@
                                           (+ y (* (* 2 r) (sin (* 2 pi)))))
                                     (cons (+ x (* (* 2 r) (cos 2pi/3)))
                                           (+ y (* (* 2 r) (sin 2pi/3)))))))
-         ((eq? vertice-form 'circle)
+         ((eqv? vertice-form 'circle)
           (send dc draw-ellipse
                 (- x r) (- y r) (* r 2) (* r 2))))))
 
