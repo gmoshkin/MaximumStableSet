@@ -12,7 +12,7 @@
 (define (main graph K)
 
   ;###################### consts ############################
-  (define POP-SIZE 12) ; population size, must be even
+  (define pop-size 100) ; population size, must be even
   (define const-fitness-duration 15)
   (define generation-numb-max 20000)
   (define crossover-prob 0.8)
@@ -28,7 +28,7 @@
   (define nodes-number (length nodes))
 
   ;###################### initialization ############################
-  ; generates POP-SIZE random population, each vector of nodes-number size
+  ; generates pop-size random population, each vector of nodes-number size
   (define (random-population)
     ; generate binary vector of nodes-number length
     (define (gen-bin-vector lst)
@@ -37,7 +37,7 @@
         (gen-bin-vector (cons (= 1 (random 2)) lst))))
 
     (define (gen-population lst)
-      (if (= (length lst) POP-SIZE )
+      (if (= (length lst) pop-size )
         lst
         (gen-population (cons (gen-bin-vector '()) lst))))
 
@@ -179,14 +179,14 @@
             answer-vertices))
         ; continue
         (let*
-          ((mothers (select-parents population-with-ffs (/ POP-SIZE 2)))
-            (fathers (select-parents population-with-ffs (/ POP-SIZE 2)))
+          ((mothers (select-parents population-with-ffs (/ pop-size 2)))
+            (fathers (select-parents population-with-ffs (/ pop-size 2)))
             (new-generation (give-birth (zip fathers mothers)))
             (new-generation-mutated (map mutate new-generation))
             (new-population-with-ffs (map (lambda (x) (cons x (ff x))) new-generation-mutated))
             (new-old-populations-together (append new-population-with-ffs population-with-ffs))
             (new-old-populations-together-sorted (sort new-old-populations-together sol-f>))
-            (strongest-guys (take-els new-old-populations-together-sorted POP-SIZE)))
+            (strongest-guys (take-els new-old-populations-together-sorted pop-size)))
           (main-cycle
             strongest-guys
             (+ 1 generation-numb)
