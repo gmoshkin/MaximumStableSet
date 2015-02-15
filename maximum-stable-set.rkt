@@ -16,15 +16,18 @@
 ;###############################################################################
 (define (generate-test vertices-num dominants-num)
   (let*
+    ((rest-num (- vertices-num dominants-num))
      ; доминирующие вершины представляется отрицательными числами
-    ((dominants (map (lambda (x) (- x)) (cdr (range (+ 1 dominants-num)))))
+     (dominants (map (lambda (x) (- x)) (cdr (range (+ 1 dominants-num)))))
      ; вершины, не являющиеся доминантными, представляются положительными числами
-     (rest (cdr (range (+ 1 (- vertices-num dominants-num)))))
+     (rest (cdr (range (+ 1 rest-num))))
      (vertices (append dominants rest))
      ; списки вершин, с которыми соединены доминантные вершины
-     (dominants (generate-dominations vertices))
-     (graph (dominants->graph dominants)))
-    (displayln dominants)
+     (dominations (generate-dominations vertices))
+     (graph (dominations->graph dominations))
+     (graph (append (random-graph rest
+                                  (random (+ 1 (/ (* rest-num (- rest-num 1)) 2))))
+                    graph)))
     graph))
 
 ;###############################################################################
@@ -32,34 +35,56 @@
 ; функция генерирует наборы рёбер, с которыми соединены доминирующие вершины
 ;###############################################################################
 (define (generate-dominations vertices)
-  (define (non-dominant? dominants candidate)
+  (define (no-good? dominants candidate)
     (cond	((null? dominants) #f)
-          ((sublist? (car dominants) candidate) #t)
-          (else (non-dominant? (cdr dominants) candidate))))
-  (define (helper ready not-ready)
-    (if (null? not-ready)
-      ready
-      (let
-        ((candidate (random-sublist vertices (random (length vertices)))))
-        (if (non-dominant? ready candidate)
-          (helper ready not-ready)
-          (helper (cons (cons (caar not-ready) candidate) ready)
-                  (cdr not-ready))))))
-  (helper '() (map list (filter negative? vertices))))
+          ((or (sublist? (car dominants) candidate)
+               (sublist? candidate (car dominants))) #t)
+          (else (no-good? (cdr dominants) candidate))))
+  (define (helper ready not-ready not-used-vertices)
+    (cond ((null? not-ready) ready)
+          ((and (null? (cdr not-ready)) (pair? not-used-vertices))
+           (cons (cons (caar not-ready) not-used-vertices) ready))
+          (else
+            (let
+              ((candidate
+                 (cons (caar not-ready)
+                       (random-sublist vertices (random (length vertices))))))
+              (if (no-good? ready candidate)
+                (helper ready not-ready not-used-vertices)
+                (helper (cons candidate ready) (cdr not-ready)
+                        (difference not-used-vertices candidate)))))))
+  (helper '() (map list (filter negative? vertices)) vertices))
 
 ;###############################################################################
-; dominants -- список наборов рёбер, с которыми соединены доминирующие вершины
+; dominations -- список наборов рёбер, с которыми соединены доминирующие вершины
 ; функция генерирует граф
 ;###############################################################################
-(define (dominants->graph dominants)
-  (define (helper graph dominants)
-    (if (null? dominants)
+(define (dominations->graph dominations)
+  (define (helper graph dominations)
+    (if (null? dominations)
       (remove-loops graph)
       (helper (append graph
-                      (map (lambda (x) (list (caar dominants) x))
-                           (cdar dominants)))
-              (cdr dominants))))
-  (helper '() dominants))
+                      (map (lambda (x) (list (caar dominations) x))
+                           (cdar dominations)))
+              (cdr dominations))))
+  (helper '() dominations))
+
+;###############################################################################
+; vertices -- список вершин
+; n -- количество рёбер
+; функция генерирует граф на данных вершинах с данным количеством рёбер
+;###############################################################################
+(define (random-graph vertices n)
+  (define (helper ready n)
+    (if (= n 0)
+      ready
+      (let
+        ((v1 (list-ref vertices (random (length vertices))))
+         (v2 (list-ref vertices (random (length vertices)))))
+        (if (or (eqv? v1 v2) (adjacent? v1 v2 ready))
+          (helper ready n)
+          (helper (cons (list v1 v2) ready) (- n 1))))))
+  (helper '() n))
 
 ;###############################################################################
 ; Генетический алгоритм
@@ -573,6 +598,7 @@
         ((member (car sublst) lst) (sublist? lst (cdr sublst)))
         (else #f)))
 
+; удаляет из графа петли (рёбра, состоящие из одной вершины)
 (define (remove-loops graph)
   (define (helper ready not-ready)
     (cond ((null? not-ready) ready)
@@ -581,6 +607,14 @@
           (else (helper (cons (car not-ready) ready) (cdr not-ready)))))
   (helper '() graph))
 
+; возвращает список, состоящий из элементов первого, не входящих во второй
+(define (difference lst1 lst2)
+  (define (helper ready not-ready)
+    (cond ((null? not-ready) ready)
+          ((member (car not-ready) lst2) (helper ready (cdr not-ready)))
+          (else (helper (cons (car not-ready) ready) (cdr not-ready)))))
+  (helper '() lst1))
+
 ;###############################################################################
 
 ; (main '((a b) (b c) (b f) (c d) (a d) (a e)) 2)
@@ -588,7 +622,7 @@
 ; (define vertices (distinct (flatten-once graph)))
 ; (define mss '(a b))
 ; (draw-result graph vertices mss)
-(define graph (generate-test 10 5))
+(define graph (generate-test 6 2))
 (define vertices (distinct (flatten-once graph)))
 (define mss (filter negative? vertices))
 (displayln graph)
