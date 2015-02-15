@@ -189,12 +189,13 @@
 
     ; проверить покрытие для вершины, которая в данном решении не является доминатной
     (define (check-coverage vertex)
-      (sgn (sum (map
-        (lambda (taken-vertex)
-          (if (adjacent? vertex taken-vertex graph)
+      (define (check-coverage-cycle taken-vertexes)
+        (if (null? taken-vertexes)
+          0
+          (if (adjacent? vertex (car taken-vertexes) graph)
             1
-            0))
-        taken-vertexes))))
+            (check-coverage-cycle (cdr taken-vertexes)))))
+      (check-coverage-cycle taken-vertexes))
 
     (map
       (lambda (x)
@@ -696,6 +697,7 @@
           #:out-file "Time.jpeg"
           #:out-kind 'jpeg)))
 
-(time-stat '(10 25 50 100 125 150) 3)
+(time-stat '(10 15 20 25 30 35 40 45 50 60) 2)
+; (time-stat '(10 30 50 70 90 110) 1)
 
-(test 1 6 3)
+; (test 1 6 3)
