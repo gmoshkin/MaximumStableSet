@@ -1,13 +1,65 @@
 #lang racket/base
 
+; plot -- используется для визуализации графика
 (require plot)
-(require racket/class)
+; draw -- используется для визуализации реузльтата
 (require racket/draw)
-
+; class -- используется метод new для создания объекта типа bitmap-dc%
+(require racket/class)
 
 ;###############################################################################
 ; Генерация тестов
 ;###############################################################################
+;###############################################################################
+; vertices-num -- количество вершин
+; dominants-num -- количество доминирующих вершин
+;###############################################################################
+(define (generate-test vertices-num dominants-num)
+  (let*
+     ; доминирующие вершины представляется отрицательными числами
+    ((dominants (map (lambda (x) (- x)) (cdr (range (+ 1 dominants-num)))))
+     ; вершины, не являющиеся доминантными, представляются положительными числами
+     (rest (cdr (range (+ 1 (- vertices-num dominants-num)))))
+     (vertices (append dominants rest))
+     ; списки вершин, с которыми соединены доминантные вершины
+     (dominants (generate-dominations vertices))
+     (graph (dominants->graph dominants)))
+    (displayln dominants)
+    graph))
+
+;###############################################################################
+; vertices -- вершины
+; функция генерирует наборы рёбер, с которыми соединены доминирующие вершины
+;###############################################################################
+(define (generate-dominations vertices)
+  (define (non-dominant? dominants candidate)
+    (cond	((null? dominants) #f)
+          ((sublist? (car dominants) candidate) #t)
+          (else (non-dominant? (cdr dominants) candidate))))
+  (define (helper ready not-ready)
+    (if (null? not-ready)
+      ready
+      (let
+        ((candidate (random-sublist vertices (random (length vertices)))))
+        (if (non-dominant? ready candidate)
+          (helper ready not-ready)
+          (helper (cons (cons (caar not-ready) candidate) ready)
+                  (cdr not-ready))))))
+  (helper '() (map list (filter negative? vertices))))
+
+;###############################################################################
+; dominants -- список наборов рёбер, с которыми соединены доминирующие вершины
+; функция генерирует граф
+;###############################################################################
+(define (dominants->graph dominants)
+  (define (helper graph dominants)
+    (if (null? dominants)
+      (remove-loops graph)
+      (helper (append graph
+                      (map (lambda (x) (list (caar dominants) x))
+                           (cdar dominants)))
+              (cdr dominants))))
+  (helper '() dominants))
 
 ;###############################################################################
 ; Генетический алгоритм
@@ -261,7 +313,7 @@
 ;###############################################################################
 (define (draw-result src-graph src-vertices src-mss)
   (let*
-    ((vertices-indexes (zip vertices (range (length src-vertices))))
+    ((vertices-indexes (zip src-vertices (range (length src-vertices))))
      (graph (map (lambda (edge)
                    (list (vertex->index (car edge) vertices-indexes)
                          (vertex->index (cadr edge) vertices-indexes)))
@@ -271,7 +323,7 @@
      (vertices (map cdr vertices-indexes))
      (vertices-vect (apply vector vertices))
      (coordinates (Peter-Eades-algorithm graph vertices))
-     (dbg (displayln coordinates))
+     ; (dbg (displayln coordinates))
      (min-x (foldl (lambda (coordinate min-tmp) (min (car coordinate) min-tmp))
                    (caar coordinates)
                    (cdr coordinates)))
@@ -380,7 +432,7 @@
 ;###############################################################################
 (define (Peter-Eades-algorithm graph vertices)
   (define (cycle coordinates n)
-    (displayln coordinates)
+    ; (displayln coordinates)
     (if (= n 0)
       coordinates
       (let
@@ -499,6 +551,36 @@
     ((positive? n)  1)
     (else 0)))
 
+; случайный подсписок
+(define (random-sublist lst n)
+  (define (put-first src n dest)
+    (cond ((null? src)
+           (reverse dest))
+          ((= n 0)
+           (cons (car src) (append (reverse dest) (cdr src))))
+          (else
+            (put-first (cdr src) (- n 1) (cons (car src) dest)))))
+  (define (helper src n dest)
+    (if (= n 0)
+      dest
+      (let
+        ((tmp (put-first src (random (length src)) '())))
+        (helper (cdr tmp) (- n 1) (cons (car tmp) dest)))))
+  (helper lst n '()))
+
+(define (sublist? lst sublst)
+  (cond	((null? sublst) #t)
+        ((member (car sublst) lst) (sublist? lst (cdr sublst)))
+        (else #f)))
+
+(define (remove-loops graph)
+  (define (helper ready not-ready)
+    (cond ((null? not-ready) ready)
+          ((eqv? (cadar not-ready) (caar not-ready))
+           (helper ready (cdr not-ready)))
+          (else (helper (cons (car not-ready) ready) (cdr not-ready)))))
+  (helper '() graph))
+
 ;###############################################################################
 
 ; (main '((a b) (b c) (b f) (c d) (a d) (a e)) 2)
@@ -506,3 +588,9 @@
 ; (define vertices (distinct (flatten-once graph)))
 ; (define mss '(a b))
 ; (draw-result graph vertices mss)
+(define graph (generate-test 10 5))
+(define vertices (distinct (flatten-once graph)))
+(define mss (filter negative? vertices))
+(displayln graph)
+(draw-result graph vertices mss)
+; (sublist? (range 10) '(1 0))
