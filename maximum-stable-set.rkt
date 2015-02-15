@@ -25,13 +25,9 @@
      ; списки вершин, с которыми соединены доминантные вершины
      (dominations (generate-dominations vertices dominants))
      (graph (dominations->graph dominations))
-     ; (graph (append (random-graph
-                      ; rest
-                      ; (random (+ 1 (/ (* rest-num (- rest-num 1)) 2))))
-                    ; graph))
-                    )
-    (displayln dominations)
-    (displayln graph)
+     (graph (make-edges graph dominations)))
+    ; (displayln dominations)
+    ; (displayln graph)
     (cons (map car (filter (lambda (x) (pair? (cdr x))) dominations)) graph)))
 
 ;###############################################################################
@@ -39,7 +35,6 @@
 ; функция генерирует наборы рёбер, с которыми соединены доминирующие вершины
 ;###############################################################################
 (define (generate-dominations vertices dominants)
-  
   (let*
     ((reserved (random-sublist (difference vertices dominants) (length dominants)))
      (rest (difference vertices reserved)))
@@ -78,18 +73,35 @@
   (helper '() dominations))
 
 ;###############################################################################
+; dominations -- список наборов рёбер, с которыми соединены доминирующие вершины
+; функция генерирует граф добавляя рёбра между некоторыми вершинами,
+; соединёнными с одной доминантой
+;###############################################################################
+(define (make-edges graph dominations)
+  (define (helper tmp-graph left-dominations)
+    (if (null? left-dominations)
+      tmp-graph
+      (let*
+        ((vertices (car left-dominations))
+         (vertices-num (length vertices))
+         (edges-num (random (+ 1 (/ (* vertices-num (- vertices-num 1)) 2)))))
+        (helper (append tmp-graph (random-graph vertices edges-num tmp-graph))
+                (cdr left-dominations)))))
+  (helper graph (random-sublist dominations (random (length dominations)))))
+
+;###############################################################################
 ; vertices -- список вершин
 ; n -- количество рёбер
 ; функция генерирует граф на данных вершинах с данным количеством рёбер
 ;###############################################################################
-(define (random-graph vertices n)
+(define (random-graph vertices n graph)
   (define (helper ready n)
     (if (= n 0)
       ready
       (let
         ((v1 (list-ref vertices (random (length vertices))))
          (v2 (list-ref vertices (random (length vertices)))))
-        (if (or (eqv? v1 v2) (adjacent? v1 v2 ready))
+        (if (or (eqv? v1 v2) (adjacent? v1 v2 ready) (adjacent? v1 v2 graph))
           (helper ready n)
           (helper (cons (list v1 v2) ready) (- n 1))))))
   (helper '() n))
@@ -665,14 +677,7 @@
   (helper '() lst1))
 
 ;###############################################################################
-
-; (define graph (generate-test 6 3))
-; (main '((a b) (b c) (b f) (c d) (a d) (a e)) 2)
-; (define graph '((a b) (b c) (b f) (c d) (a d) (a e)))
-; (define vertices (distinct (flatten-once graph)))
-; (define mss '(a b))
-; (draw-result graph vertices mss)
-
+; функция для подсчёта времени работы алгоритма
 (define (time-stat lst n)
   (define (foo vertices-num dominants-num i cpus)
     (if (< i n)
@@ -706,4 +711,4 @@
 
 ; (time-stat '(9) 1)
 
-(test 1 20 3)
+(test 10 20 3)
