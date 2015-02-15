@@ -199,11 +199,10 @@
     1 0 0 '(() () ())))
 
 
-;#######################################################
+;###############################################################################
 ; Визуализация
-;#######################################################
+;###############################################################################
 ; константы:
-; визуализация:
 (define pi 3.141592653)
 (define c-spring 2.0)
 (define c-repulsion 1.0)
@@ -224,22 +223,10 @@
 (define margin-y 50)
 
 ;###############################################################################
-; Генерация тестов
-;###############################################################################
-;###############################################################################
-; описание функции
-;###############################################################################
-(define (generate-test vertices-num dominators-num)
-  'TODO)
-
-;###############################################################################
-; Визуализация
-;###############################################################################
-;###############################################################################
 ; statistics -- список из трёх списков (max-fit avg-fit min-fit) содержащих
 ; максимальные, средние и минимаьлные соостветственно значения целевой функции
 ; на каждой итерации алгоритма
-; функция рисует граффик в файл Statistics.jpeg
+; функция рисует график в файл Statistics.jpeg
 ;###############################################################################
 (define (draw-statistics statistics)
   (let*
@@ -259,15 +246,22 @@
           #:out-kind 'jpeg)))
 
 ;###############################################################################
-; graph -- список рёбер графа, где вершина -- пара (список?) индексов вершин
-; vertices -- список индексов вершин
-; mss -- список индексов вершин, которые входят в доминирующее множество
+; graph -- список рёбер графа, где ребро -- список вершин
+; vertices -- список вершин
+; mss -- список вершин, которые входят в доминирующее множество
 ; функция вызывает функцию draw-graph проведя подготовку и сохраняет результат
 ; в файл Result.jpeg
 ;###############################################################################
-(define (draw-result graph vertices mss)
+(define (draw-result src-graph src-vertices src-mss)
   (let*
-    (
+    ((vertices-indexes (zip vertices (range (length src-vertices))))
+     (graph (map (lambda (edge)
+                   (list (vertex->index (car edge) vertices-indexes)
+                         (vertex->index (cadr edge) vertices-indexes)))
+                 src-graph))
+     (mss (map (lambda (vertex) (vertex->index vertex vertices-indexes))
+               src-mss))
+     (vertices (map cdr vertices-indexes))
      (vertices-vect (apply vector vertices))
      (coordinates (Peter-Eades-algorithm graph vertices))
      (dbg (displayln coordinates))
@@ -296,11 +290,24 @@
     (send bitmap save-file "Result.jpeg" 'jpeg)))
 
 ;###############################################################################
+; vertex -- врешина
+; vertices -- список пар (вершина . индекс)
+; функция заменяет вершину на её индекс
+;###############################################################################
+(define (vertex->index vertex vertices)
+  (cond ((null? vertices)
+         #f)
+        ((eqv? (caar vertices) vertex)
+         (cdar vertices))
+        (else
+          (helper vertex (cdr vertices)))))
+
+;###############################################################################
 ; dc -- объект типа контекст рисования
-; graph -- список рёбер графа, где ребро -- пара (список?) индексов вершин
+; graph -- список рёбер графа, где ребро -- список индексов вершин
 ; coordinates -- список координат вершин
 ; mss -- список индексов вершин, которые входят в доминирующее множество
-; функция рисует графф
+; функция рисует граф
 ;###############################################################################
 (define (draw-graph dc graph coordinates mss origin-x origin-y scale-x scale-y r)
   (let
@@ -314,7 +321,7 @@
              ((v1-coord (vector-ref coordinates-vect (car edge)))
               (x1 (+ (* scale-x (car v1-coord)) origin-x))
               (y1 (+ (* scale-y (cdr v1-coord)) origin-y))
-              (v2-coord (vector-ref coordinates-vect (cdr edge)))
+              (v2-coord (vector-ref coordinates-vect (cadr edge)))
               (x2 (+ (* scale-x (car v2-coord)) origin-x))
               (y2 (+ (* scale-y (cdr v2-coord)) origin-y)))
              (send dc draw-lines (list (cons x1 y1) (cons x2 y2))))) graph)
@@ -327,9 +334,9 @@
              (draw-vertice dc x y vertice-radius))) coordinates)
     (send dc set-pen "black" 1 'transparent)
     (send dc set-brush mss-color 'solid)
-    (map (lambda (vertice)
+    (map (lambda (vertex)
            (let*
-             ((coord (vector-ref coordinates-vect vertice))
+             ((coord (vector-ref coordinates-vect vertex))
               (x (+ (* scale-x (car coord)) origin-x))
               (y (+ (* scale-y (cdr coord)) origin-y)))
              (draw-vertice dc x y vertice-radius))) mss)))
@@ -359,7 +366,7 @@
                 (- x r) (- y r) (* r 2) (* r 2))))))
 
 ;###############################################################################
-; graph -- список рёбер графа, где ребро -- пара (список?) индексов вершин
+; graph -- список рёбер графа, где ребро -- список индексов вершин
 ; vertices -- список индексов вершин
 ; функция высчитывает координаты вершин по алгоритму неизвестного автора и
 ; возвращает список пар координат вершин графа
@@ -382,18 +389,22 @@
   (cycle (initialize (length vertices)) 10))
 
 ;###############################################################################
+; vertex -- вершина
+; graph -- список рёбер графа, где ребро -- список индексов вершин
+; vertices -- список вершин графа
+; coordinates-vect -- вектор координат вершин
 ; вычисляет силу, действующую на вершину со стороны остальных вершин
 ;###############################################################################
-(define (force vertice graph vertices coordinates-vect)
+(define (force vertex graph vertices coordinates-vect)
   (let
-    ((coord (vector-ref coordinates-vect vertice)))
+    ((coord (vector-ref coordinates-vect vertex)))
     (define (force v)
       (let* ((coord2 (vector-ref coordinates-vect v))
              (x2 (car coord2)) (x1 (car coord))
              (y2 (cdr coord2)) (y1 (cdr coord))
              (x-dir (- x1 x2)) (y-dir (- y1 y2))
              (dist (sqrt (+ (sqr x-dir) (sqr y-dir)))))
-        (if (adjacent? v vertice graph)
+        (if (adjacent? v vertex graph)
           (let ((force (* c-spring (log (/ dist nat-length)))))
             (cons (- (* (/ x-dir dist) force)) (- (* (/ y-dir dist) force))))
           (let ((force (/ c-repulsion (sqr dist))))
@@ -402,7 +413,7 @@
              (let ((force (force v)))
                (cons (+ (car force) (car f)) (+ (cdr force) (cdr f)))))
            (cons 0 0)
-           (filter (lambda (v) (not (equal? v vertice))) vertices))))
+           (filter (lambda (v) (not (equal? v vertex))) vertices))))
 
 ;###############################################################################
 ; проверяет, есть ли в графе ребро соединяющее две вершины
@@ -420,20 +431,12 @@
 ; vertices-num -- количество вершин графа
 ; функция возвращает список случайных пар координат
 ;###############################################################################
-; (define (initialize vertices-num)
-  ; (list (cons 10 10) (cons 50 10) (cons 50 50) (cons 10 55)))
 (define (initialize vertices-num)
   (define (helper coordinates n)
     (if (= n 0)
       coordinates
       (helper (cons (cons (random 300) (random 300)) coordinates) (- n 1))))
   (helper '() vertices-num))
-
-;###############################################################################
-; (define bitmap (make-bitmap 300 300))
-; (define dc (new bitmap-dc% [bitmap bitmap]))
-; (send dc set-background "white")
-; (send dc clear)
 
 ;###############################################################################
 ; Просто полезные функции
@@ -491,5 +494,6 @@
 
 ;###############################################################################
 
-(main '((a b) (b c) (b f) (c d) (a d) (a e)) 2)
+; (main '((a b) (b c) (b f) (c d) (a d) (a e)) 2)
+(define graph '((a b) (b c) (b f) (c d) (a d) (a e)))
 
