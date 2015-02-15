@@ -29,7 +29,7 @@
                       rest
                       (random (+ 1 (/ (* rest-num (- rest-num 1)) 2))))
                     graph)))
-    (cons dominans graph)))
+    (cons dominants graph)))
 
 ;###############################################################################
 ; vertices -- вершины
