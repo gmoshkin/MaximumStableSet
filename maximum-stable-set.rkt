@@ -25,9 +25,7 @@
      ; списки вершин, с которыми соединены доминантные вершины
      (dominations (generate-dominations vertices dominants))
      (graph (dominations->graph dominations))
-     (graph (make-edges graph dominations))
-    ; (displayln dominations)
-    ; (displayln graph)
+     (graph (make-edges graph dominations)))
     (cons (map car (filter (lambda (x) (pair? (cdr x))) dominations)) graph)))
 
 ;###############################################################################
@@ -86,7 +84,7 @@
          (edges-num (random vertices-num)))
         (helper (append tmp-graph (random-graph vertices edges-num tmp-graph))
                 (cdr left-dominations)))))
-  (helper graph (random-sublist dominations (random (length dominations)))))
+  (helper graph (list (list-ref dominations (random (length dominations))))))
 
 ;###############################################################################
 ; vertices -- список вершин
@@ -711,4 +709,4 @@
 
 ; (time-stat '(10 15 20 25 30 35 40 45 50 60) 2)
 
-(test 10 20 3)
+(test 20 10 3)
