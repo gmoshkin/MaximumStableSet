@@ -24,8 +24,7 @@
      (vertices (append dominants rest))
      ; списки вершин, с которыми соединены доминантные вершины
      (dominations (generate-dominations vertices dominants))
-     (graph (dominations->graph dominations))
-     (graph (make-edges graph dominations)))
+     (graph (dominations->graph dominations)))
     (cons (map car (filter (lambda (x) (pair? (cdr x))) dominations)) graph)))
 
 ;###############################################################################
