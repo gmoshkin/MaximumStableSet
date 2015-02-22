@@ -24,8 +24,7 @@
      (vertices (append dominants rest))
      ; списки вершин, с которыми соединены доминантные вершины
      (dominations (generate-dominations vertices dominants))
-     (graph (dominations->graph dominations))
-     (graph (make-edges graph dominations)))
+     (graph (dominations->graph dominations)))
     (cons (map car (filter (lambda (x) (pair? (cdr x))) dominations)) graph)))
 
 ;###############################################################################
@@ -301,8 +300,8 @@
            (+ 1 best-fitness-duration)
            1))
        ; данные для визуализации процесса приближения
-       (new-avg-fitness (cdr (list-ref population-with-ffs (- (length population-with-ffs) 1))))
-       (new-worst-fitness (cdr (list-ref population-with-ffs (/ (length population-with-ffs) 2))))
+       (new-worst-fitness (cdr (list-ref population-with-ffs (- (length population-with-ffs) 1))))
+       (new-avg-fitness (cdr (list-ref population-with-ffs (/ (length population-with-ffs) 2))))
        (new-best-fitnesses-lst (cons new-best-fitness (car fitnesses-history)))
        (new-avg-fitnesses-lst (cons new-avg-fitness (cadr fitnesses-history)))
        (new-worst-fitnesses-lst (cons new-worst-fitness (caddr fitnesses-history)))
