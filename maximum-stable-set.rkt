@@ -349,8 +349,8 @@
 (define pi 3.141592653)
 (define c-spring 2.0)
 (define c-repulsion 1.0)
-(define nat-length 1.0)
-(define delta 0.01)
+(define nat-length 50.0)
+(define delta 2.0)
 (define iterations-num 100)
 (define vertice-color "blue")
 (define vertice-radius 6)
@@ -546,11 +546,12 @@
              (x2 (car coord2)) (x1 (car coord))
              (y2 (cdr coord2)) (y1 (cdr coord))
              (x-dir (- x1 x2)) (y-dir (- y1 y2))
+             (y-dir (if (and (= 0 x-dir) (= 0 y-dir)) 1 y-dir))
              (dist (sqrt (+ (sqr x-dir) (sqr y-dir)))))
         (if (adjacent? v vertex graph)
           (let ((force (* c-spring (log (/ dist nat-length)))))
             (cons (- (* (/ x-dir dist) force)) (- (* (/ y-dir dist) force))))
-          (let ((force (/ c-repulsion (sqr dist))))
+          (let* ((force (/ c-repulsion (sqr dist))))
             (cons (+ (* (/ x-dir dist) force)) (+ (* (/ y-dir dist) force)))))))
     (foldl (lambda (v f)
              (let ((force (force v)))
@@ -707,6 +708,6 @@
           #:out-file "Time.jpeg"
           #:out-kind 'jpeg)))
 
-(time-stat '(10 15 20 25 30 35 40 45 50 60 70 80 90 100 120 140 160 180 200 230 260) 3)
+; (time-stat '(10 15 20 25 30 35 40 45 50 60 70 80 90 100 120 140 160 180 200 230 260) 3)
 
 (test 20 10 3)
