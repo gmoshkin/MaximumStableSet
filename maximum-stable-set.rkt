@@ -154,14 +154,6 @@
 
 ; Возвращает пару (|W| . W)
 (define (maximum-stable-set graph)
-
-  ;###################### констатнты ############################
-  (define pop-size 100) ; размер популяции, должен быть четным
-  (define const-fitness-duration 15)
-  (define generation-numb-max 20000)
-  (define crossover-prob 0.8)
-  (define mutate-prob 0.1)
-
   ; список имен вершин графа
   (define (get-vertices graph)
     (distinct (flatten-once graph)))
@@ -169,6 +161,13 @@
   ;###################### вспомогательные данные ############################
   (define vertices (get-vertices graph))
   (define vertices-number (length vertices))
+
+  ;###################### констатнты ############################
+  (define pop-size 100) ; размер популяции, должен быть четным
+  (define const-fitness-duration 20)
+  (define generation-numb-max 20000)
+  (define crossover-prob 0.8)
+  (define mutate-prob (/ 1.0 vertices-number))
 
   ;###################### инициализация ############################
   ; сгенерировать случайную популяцию размера pop-size, каждый член которой состоит из vertices-number элементов
@@ -194,8 +193,8 @@
        (coverage (sum coverage-vec))
        (vertexes-taken (sum (binary-vec-to-int solution))))
       (+
-        (* 2 (/ coverage vertices-number))
-        (/ (+ 1 (* vertices-number vertexes-taken))))))
+        (/ (* 1000 coverage) vertices-number)
+        (/ (* 100 (- vertices-number vertexes-taken)) vertices-number))))
 
   ; возвращает список покрытия (0 или 1, покрывается или нет каждая вершина в данном решении) 
   (define (get-coverage-vec solution)
@@ -653,7 +652,7 @@
   (helper lst n '()))
 
 (define (sublist? lst sublst)
-  (cond	((null? sublst) #t)
+  (cond ((null? sublst) #t)
         ((member (car sublst) lst) (sublist? lst (cdr sublst)))
         (else #f)))
 
@@ -707,6 +706,7 @@
           #:out-file "Time.jpeg"
           #:out-kind 'jpeg)))
 
-; (time-stat '(10 15 20 25 30 35 40 45 50 60 70 80 90 100 120 140 160 180 200 230 260) 3)
+; (time-stat '(10 15 20 25 30 35 40 45 50 60 70 80 90 100 120 140 160 180 200 230 260) 2)
+; (time-stat '(10 30 50 70 90 110 130 150 170 190 210) 2)
 
-(test 20 10 3)
+(test 3 50 4)
